@@ -24,6 +24,19 @@ namespace sedov
     virtual void scale(double k) = 0;
   };
 
+  struct Rectangle: Shape
+  {
+    Rectangle(double w, double h, point_t p);
+    double getArea() const override;
+    rectangle_t getFrameRect() const override;
+    void move(point_t p) override;
+    void move(double dx, double dy) override;
+    void scale(double k) override;
+  private:
+    double width_, height_;
+    point_t center_;
+  };
+
   void scaleByPoint(Shape ** fs, size_t s, point_t p, double k);
   double getAllArea(Shape ** p, size_t s);
   rectangle_t getAllFrameRect(Shape ** p, size_t s);
@@ -32,6 +45,49 @@ namespace sedov
 
 int main()
 {}
+
+sedov::Rectangle::Rectangle(double w, double h, point_t p):
+  Shape(),
+  width_(w),
+  height_(h),
+  center_(p)
+{
+  if (w <= 0 || h <= 0)
+  {
+    throw std::invalid_argument("Invalid size");
+  }
+}
+
+double sedov::Rectangle::getArea() const
+{
+  return width_ * height_;
+}
+
+sedov::rectangle_t sedov::Rectangle::getFrameRect() const
+{
+  rectangle_t frameRect;
+  frameRect.width = width_;
+  frameRect.height = height_;
+  frameRect.pos = center_;
+  return frameRect;
+}
+
+void sedov::Rectangle::move(point_t p)
+{
+  center_ = p;
+}
+
+void sedov::Rectangle::move(double dx, double dy)
+{
+  center_.x += dx;
+  center_.y += dy;
+}
+
+void sedov::Rectangle::scale(double k)
+{
+  width_ *= k;
+  height_ *= k;
+}
 
 void sedov::scaleByPoint(Shape ** fs, size_t s, point_t p, double k)
 {
