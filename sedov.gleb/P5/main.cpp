@@ -79,7 +79,53 @@ namespace sedov
 }
 
 int main()
-{}
+{
+  sedov::Shape * figures[3] = {nullptr, nullptr, nullptr};
+  size_t size = 3;
+  double k = 0.0;
+  sedov::point_t p = {0.0, 0.0};
+
+  std::cin >> p.x >> p.y >> k;
+  if (!std::cin || k <= 0.0)
+  {
+    std::cerr << "Bad input\n";
+    return 1;
+  }
+
+  sedov::point_t * points = new sedov::point_t[4] {{0.0, 0.0}, {4.0, 0.0}, {4.0, 6.0}, {0.0, 3.0}};
+  try
+  {
+    figures[0] = new sedov::Rectangle(2.0, 8.0, {10.0, 0.0});
+    figures[1] = new sedov::Polygon(points, 4);
+    figures[2] = new sedov::Ellipse(3.0, 2.0, {-2.0, 0.0});
+    sedov::output(figures, size);
+    sedov::scaleByPoint(figures, size, p, k);
+    sedov::output(figures, size);
+    delete figures[0];
+    delete figures[1];
+    delete figures[2];
+    delete[] points;
+    return 0;
+  }
+  catch (const std::bad_alloc & e)
+  {
+    std::cerr << e.what() << "\n";
+    delete figures[0];
+    delete figures[1];
+    delete figures[2];
+    delete[] points;
+    return 2;
+  }
+  catch (const std::invalid_argument & e)
+  {
+    std::cerr << e.what() << "\n";
+    delete figures[0];
+    delete figures[1];
+    delete figures[2];
+    delete[] points;
+    return 3;
+  }
+}
 
 sedov::Rectangle::Rectangle(double w, double h, point_t p):
   Shape(),
