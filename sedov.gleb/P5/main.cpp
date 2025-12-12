@@ -3,6 +3,8 @@
 
 namespace sedov
 {
+  const double PI = 3.14;
+
   struct point_t
   {
     double x, y;
@@ -54,6 +56,19 @@ namespace sedov
     point_t center_;
     point_t * ps_;
     size_t size_;
+  };
+
+  struct Ellipse: Shape
+  {
+    Ellipse(double radHor, double radVer, point_t p);
+    double getArea() const override;
+    rectangle_t getFrameRect() const override;
+    void move(point_t p) override;
+    void move(double dx, double dy) override;
+    void scale(double k) override;
+  private:
+    double radiusHor_, radiusVer_;
+    point_t center_;
   };
 
   point_t getCenterOfPolygon(const point_t * ps, size_t s);
@@ -254,6 +269,49 @@ sedov::point_t sedov::getCenterOfPolygon(const point_t * ps, size_t s)
   c.x /= 6.0 * std::abs(area);
   c.y /= 6.0 * std::abs(area);
   return c;
+}
+
+sedov::Ellipse::Ellipse(double radHor, double radVer, point_t p):
+  Shape(),
+  radiusHor_(radHor),
+  radiusVer_(radVer),
+  center_(p)
+{
+  if (radHor <= 0.0 || radVer <= 0.0)
+  {
+    throw std::invalid_argument("Invalid radius");
+  }
+}
+
+double sedov::Ellipse::getArea() const
+{
+  return PI * radiusHor_ * radiusVer_;
+}
+
+sedov::rectangle_t sedov::Ellipse::getFrameRect() const
+{
+  rectangle_t frameRect;
+  frameRect.width = radiusHor_ * 2;
+  frameRect.height = radiusVer_ * 2;
+  frameRect.pos = center_;
+  return frameRect;
+}
+
+void sedov::Ellipse::move(point_t p)
+{
+  center_ = p;
+}
+
+void sedov::Ellipse::move(double dx, double dy)
+{
+  center_.x += dx;
+  center_.y += dy;
+}
+
+void sedov::Ellipse::scale(double k)
+{
+  radiusHor_ *= k;
+  radiusVer_ *= k;
 }
 
 void sedov::scaleByPoint(Shape ** fs, size_t s, point_t p, double k)
