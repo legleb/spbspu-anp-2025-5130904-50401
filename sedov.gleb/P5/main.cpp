@@ -85,6 +85,7 @@ int main()
   double k = 0.0;
   sedov::point_t p = {0.0, 0.0};
 
+  std::cout << "x, y, scale: ";
   std::cin >> p.x >> p.y >> k;
   if (!std::cin || k <= 0.0)
   {
