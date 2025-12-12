@@ -6,13 +6,13 @@ namespace sedov
   struct point_t
   {
     double x, y;
-  }
+  };
 
   struct rectangle_t
   {
     double width, height;
     point_t pos;
-  }
+  };
 
   struct Shape
   {
@@ -37,6 +37,26 @@ namespace sedov
     point_t center_;
   };
 
+  struct Polygon: Shape
+  {
+    ~Polygon();
+    Polygon(point_t * ps, size_t s);
+    Polygon(const Polygon & poly);
+    Polygon & operator=(const Polygon & poly);
+    Polygon(Polygon && poly);
+    Polygon & operator=(Polygon && poly);
+    double getArea() const override;
+    rectangle_t getFrameRect() const override;
+    void move(point_t p) override;
+    void move(double dx, double dy) override;
+    void scale(double k) override;
+  private:
+    point_t center_;
+    point_t * ps_;
+    size_t size_;
+  };
+
+  point_t getCenterOfPolygon(const point_t * ps, size_t s);
   void scaleByPoint(Shape ** fs, size_t s, point_t p, double k);
   double getAllArea(Shape ** p, size_t s);
   rectangle_t getAllFrameRect(Shape ** p, size_t s);
@@ -89,6 +109,153 @@ void sedov::Rectangle::scale(double k)
   height_ *= k;
 }
 
+sedov::Polygon::Polygon(point_t * ps, size_t s):
+  Shape(),
+  center_(getCenterOfPolygon(ps, s)),
+  ps_(new point_t[s]),
+  size_(s)
+{
+  if (s < 3)
+  {
+    delete[] ps_;
+    throw std::invalid_argument("Not enough args for polygon");
+  }
+  for (size_t i = 0; i < s; ++i)
+  {
+    ps_[i] = ps[i];
+  }
+}
+
+sedov::Polygon::~Polygon()
+{
+  delete[] ps_;
+}
+
+sedov::Polygon::Polygon(const Polygon & poly):
+  Shape(),
+  center_(poly.center_),
+  ps_(new point_t[poly.size_]),
+  size_(poly.size_)
+{
+  for (size_t i = 0; i < size_; ++i)
+  {
+    ps_[i] = poly.ps_[i];
+  }
+}
+
+sedov::Polygon & sedov::Polygon::operator=(const Polygon & poly)
+{
+  if (this != & poly)
+  {
+    delete[] ps_;
+  }
+  center_ = poly.center_;
+  size_ = poly.size_;
+  ps_ = new point_t[size_];
+  for (size_t i = 0; i < size_; ++i)
+  {
+    ps_[i] = poly.ps_[i];
+  }
+  return * this;
+}
+
+sedov::Polygon::Polygon(Polygon && poly):
+  Shape(),
+  center_(poly.center_),
+  ps_(poly.ps_),
+  size_(poly.size_)
+{
+  poly.ps_ = nullptr;
+}
+
+sedov::Polygon & sedov::Polygon::operator=(Polygon && poly)
+{
+  if (this != & poly)
+  {
+    delete[] ps_;
+  }
+  center_ = poly.center_;
+  size_ = poly.size_;
+  ps_ = poly.ps_;
+  poly.ps_ = nullptr;
+  return * this;
+}
+
+double sedov::Polygon::getArea() const
+{
+  double area = 0.0;
+  for (size_t i = 0; i < size_; ++i)
+  {
+    size_t j = (i + 1) % size_;
+    area += ps_[i].x * ps_[j].y - ps_[j].x * ps_[i].y;
+  }
+  area *= 0.5;
+  return std::abs(area);
+}
+
+sedov::rectangle_t sedov::Polygon::getFrameRect() const
+{
+  rectangle_t frameRect;
+  double minX = ps_[0].x;
+  double maxX = ps_[0].x;
+  double minY = ps_[0].y;
+  double maxY = ps_[0].y;
+  for (size_t i = 1; i < size_; ++i)
+  {
+    minX = std::min(minX, ps_[i].x);
+    maxX = std::max(maxX, ps_[i].x);
+    minY = std::min(minY, ps_[i].y);
+    maxY = std::max(maxY, ps_[i].y);
+  }
+  frameRect.width = maxX - minX;
+  frameRect.height = maxY - minY;
+  frameRect.pos = {(minX + maxX) / 2, (minY + maxY) / 2};
+  return frameRect;
+}
+
+void sedov::Polygon::move(double dx, double dy)
+{
+  for (size_t i = 0; i < size_; ++i)
+  {
+    ps_[i].x += dx;
+    ps_[i].y += dy;
+  }
+  center_.x += dx;
+  center_.y += dy;
+}
+
+void sedov::Polygon::move(point_t p)
+{
+  move(p.x - center_.x, p.y - center_.y);
+}
+
+void sedov::Polygon::scale(double k)
+{
+  for (size_t i = 0; i < size_; ++i)
+  {
+    ps_[i].x = center_.x + (ps_[i].x - center_.x) * k;
+    ps_[i].y = center_.y + (ps_[i].y - center_.y) * k;
+  }
+}
+
+sedov::point_t sedov::getCenterOfPolygon(const point_t * ps, size_t s)
+{
+  point_t c = {0.0, 0.0};
+  double area = 0.0, t = 0.0;
+  for (size_t i = 0; i < s; ++i)
+  {
+    size_t j = (i + 1) % s;
+    t = ps[i].x * ps[j].y - ps[j].x * ps[i].y;
+    area += t;
+    c.x += (ps[i].x + ps[j].x) * t;
+    c.y += (ps[i].y + ps[j].y) * t;
+  }
+  area *= 0.5;
+  c.x /= 6.0 * std::abs(area);
+  c.y /= 6.0 * std::abs(area);
+  return c;
+}
+
 void sedov::scaleByPoint(Shape ** fs, size_t s, point_t p, double k)
 {
   if (!s || fs == nullptr)
@@ -109,7 +276,7 @@ double sedov::getAllArea(Shape ** p, size_t s)
 {
   if (!s || p == nullptr)
   {
-    throw std::invalid_arguments("Empty array of figures");
+    throw std::invalid_argument("Empty array of figures");
   }
   double area = 0.0;
   for (size_t i = 0; i < s; ++i)
